@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
 import {Observable, throwError, combineLatest, BehaviorSubject, Subject, merge} from 'rxjs';
-import { catchError, tap, map, scan } from 'rxjs/operators';
+import {catchError, tap, map, scan, shareReplay} from 'rxjs/operators';
 
 import { Product } from './product';
 import { Supplier } from '../suppliers/supplier';
@@ -40,7 +40,8 @@ export class ProductService {
         category: categories.find(c => product.categoryId === c.id).name,
         searchKey: [product.productName]
       }) as Product) // Type the result
-    )
+    ),
+    shareReplay(1),
   );
 
   private productSelectedSubject = new BehaviorSubject<number>(0);
@@ -119,7 +120,7 @@ export class ProductService {
 
 }
 
-/*
+/* --- Joining Streams
   Ways to combine multiple streams with different side effects:
   combineLatest: outputs a new observable (not an operator) and outputs:
     - After all combined have inputted once,
@@ -133,4 +134,17 @@ export class ProductService {
     - After all have inputted
     - Once for every source stream emission
     ex: a$.pipe(withLatestFrom(b$, c$))
+ */
+
+/* --- Caching
+  One way to cache values is to have a method to 'get' data and use the previously stored value unless specified
+  as a refresh.
+
+  The declarative RxJs way is to use 'shareReplay'
+  shareReplay: operator with specified buffer length
+    ex: shareReplay(1)
+
+   Invalidation:
+    Evaluate the fluidity of the data, behavior of users
+    Consider invalidating over an interval, allow user to refresh, always get fresh on update
  */
