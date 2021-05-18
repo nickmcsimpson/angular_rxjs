@@ -27,7 +27,7 @@ export class ProductListComponent {
 
   // Assigning it to the observable of the service is the 'Declarative'
   // approach to avoid the necessity of calling the method
-  products$ = this.productService.products$.pipe(
+  products$ = this.productService.productsWithCategory$.pipe(
     catchError(err => {
       this.errorMessage = err;
       return EMPTY;

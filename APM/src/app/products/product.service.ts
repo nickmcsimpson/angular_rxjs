@@ -1,12 +1,13 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
-import { Observable, throwError } from 'rxjs';
+import { Observable, throwError, combineLatest } from 'rxjs';
 import { catchError, tap, map } from 'rxjs/operators';
 
 import { Product } from './product';
 import { Supplier } from '../suppliers/supplier';
 import { SupplierService } from '../suppliers/supplier.service';
+import {ProductCategoryService} from "../product-categories/product-category.service";
 
 @Injectable({
   providedIn: 'root'
@@ -23,19 +24,28 @@ export class ProductService {
       // map(products =>
       //   products.map(product => product.price * 1.5)
       // ),
-      map(products =>
-        products.map(product => ({ // Parens allow object literal declaration
-          ...product, // Spread operator copies original object
-          price: product.price * 1.5, // modifies price from original value
-          searchKey: [product.productName]
-        }) as Product) // Type the result
-      ),
+      // Note: moved map to 'Product Categories' to combine the data from both streams
       tap(data => console.log('Products: ', JSON.stringify(data))),
       catchError(this.handleError) // Catch and Rethrow error handling
     );
 
+  productsWithCategory$ = combineLatest([
+    this.products$,
+    this.productCategoryService.productCategories$
+  ]).pipe(
+    map(([products, categories]) => // Destructoring
+      products.map(product => ({ // Parens allow object literal declaration
+        ...product, // Spread operator copies original object
+        price: product.price * 1.5, // modifies price from original value
+        category: categories.find(c => product.categoryId === c.id).name,
+        searchKey: [product.productName]
+      }) as Product) // Type the result
+    )
+  );
+
   constructor(private http: HttpClient,
-              private supplierService: SupplierService) { }
+              private supplierService: SupplierService,
+              private productCategoryService: ProductCategoryService) { }
 
   // Removed by referencing the observable directly
   // getProducts(): Observable<Product[]> {
@@ -72,3 +82,19 @@ export class ProductService {
   }
 
 }
+
+/*
+  Ways to combine multiple streams with different side effects:
+  combineLatest: outputs a new observable (not an operator) and outputs:
+    - After all combined have inputted once,
+    - Then every time one is updated
+    ex: combineLatest([a$, b$, c$])
+   forkJoin: outputs a new observable:
+    - All have completed
+    - only last
+    ex: forkJoin([a, b$, c$])
+   withLatestFrom: pipe operator to emit:
+    - After all have inputted
+    - Once for every source stream emission
+    ex: a$.pipe(withLatestFrom(b$, c$))
+ */
