@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
 import { Observable, throwError } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { catchError, tap, map } from 'rxjs/operators';
 
 import { Product } from './product';
 import { Supplier } from '../suppliers/supplier';
@@ -17,6 +17,19 @@ export class ProductService {
 
   products$ = this.http.get<Product[]>(this.productsUrl)
     .pipe(
+      // This is piping the whole array through since we are asking for array from the service
+      // map( item => item.price * 1.5),
+      // In this version we are not mapping the whole object, but instead just a value breaking our observable
+      // map(products =>
+      //   products.map(product => product.price * 1.5)
+      // ),
+      map(products =>
+        products.map(product => ({ // Parens allow object literal declaration
+          ...product, // Spread operator copies original object
+          price: product.price * 1.5, // modifies price from original value
+          searchKey: [product.productName]
+        }) as Product) // Type the result
+      ),
       tap(data => console.log('Products: ', JSON.stringify(data))),
       catchError(this.handleError) // Catch and Rethrow error handling
     );
