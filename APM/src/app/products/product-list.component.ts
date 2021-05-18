@@ -1,10 +1,11 @@
 import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
 
-import { EMPTY } from 'rxjs';
+import {combineLatest, EMPTY, Subject, BehaviorSubject} from 'rxjs';
 
 // import {Product} from './product';
 import {ProductService} from './product.service';
-import {catchError} from 'rxjs/operators';
+import {catchError, map, startWith} from 'rxjs/operators';
+import {ProductCategoryService} from "../product-categories/product-category.service";
 
 // OnPush allows more efficient change detection. Only checks when observables emit or input variables
 @Component({
@@ -15,7 +16,18 @@ import {catchError} from 'rxjs/operators';
 export class ProductListComponent {
   pageTitle = 'Product List';
   errorMessage = '';
-  categories;
+  // categories;
+  // selectedCategoryId = 1;
+  /*
+    Regular subject doesn't pass in an initial value. This can be set:
+    startWith: Operator that sets the first value in the pipe
+      ex: of([...]).pipe(startWith('O'),);
+
+     BehaviorSubject: Different type that has a default value
+   */
+  // private categorySelectedSubject = new Subject<number>(); // Action stream for selection
+  private categorySelectedSubject = new BehaviorSubject<number>(0); // Set default here instead!
+  categorySelectedAction$ = this.categorySelectedSubject.asObservable();
 
   // products: Product[] = [];
   // Reactive: Automatically subscribes
@@ -27,14 +39,45 @@ export class ProductListComponent {
 
   // Assigning it to the observable of the service is the 'Declarative'
   // approach to avoid the necessity of calling the method
-  products$ = this.productService.productsWithCategory$.pipe(
+  // products$ = this.productService.productsWithCategory$.pipe(
+  //   catchError(err => {
+  //     this.errorMessage = err;
+  //     return EMPTY;
+  //   })
+  // );
+
+  // Filter the list of product based on selection:
+  products$ = combineLatest([
+    this.productService.productsWithCategory$,
+    this.categorySelectedAction$
+  ]).pipe(
+    map(([products, selectedCategoryId]) =>
+      products.filter(product =>
+        selectedCategoryId ? product.categoryId === selectedCategoryId : true
+      )),
     catchError(err => {
       this.errorMessage = err;
       return EMPTY;
     })
   );
 
-  constructor(private productService: ProductService) { }
+  categories$ = this.productCategoryService.productCategories$.pipe(
+    catchError(err => {
+      this.errorMessage = err;
+      return EMPTY;
+    })
+  );
+
+  // Hard coded filtering
+  // productSimpleFilter$ = this.productService.productsWithCategory$.pipe(
+  //   map(products =>
+  //     products.filter(product =>
+  //       this.selectedCategoryId ? product.categoryId === this.selectedCategoryId : true
+  //     ))
+  // );
+
+  constructor(private productService: ProductService,
+              private productCategoryService: ProductCategoryService) { }
 
   // ngOnInit(): void {
     // Reactive declaration
@@ -57,6 +100,11 @@ export class ProductListComponent {
   }
 
   onSelected(categoryId: string): void {
-    console.log('Not yet implemented');
+    /*
+      The value is updated but the list is not refiltered because the stream is completed.
+      We need an action stream to combine the data from the input
+     */
+    // this.selectedCategoryId = +categoryId; // '+' cast to a number
+    this.categorySelectedSubject.next(+categoryId);
   }
 }
