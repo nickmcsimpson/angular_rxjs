@@ -1,10 +1,10 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
 
-import {EMPTY, Subject} from 'rxjs';
+import {combineLatest, EMPTY, Subject} from 'rxjs';
 
 // import { Product } from '../product';
 import {ProductService} from '../product.service';
-import {catchError} from 'rxjs/operators';
+import {catchError, filter, map} from 'rxjs/operators';
 
 @Component({
   selector: 'pm-product-list',
@@ -28,6 +28,15 @@ export class ProductListAltComponent {
     );
 
   selectedProduct$ = this.productService.selectedProduct$;
+
+  vm$ = combineLatest([
+    this.products$,
+    this.selectedProduct$,
+  ]).pipe(
+    filter(([products]) => Boolean(products)),
+    map(([products, selectedProduct]) =>
+      ({ products, selectedProduct }))
+  ); // How can this be done while retaining auto complete on the view?
 
   constructor(private productService: ProductService) { }
 

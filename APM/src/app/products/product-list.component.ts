@@ -4,8 +4,8 @@ import {combineLatest, EMPTY, Subject, BehaviorSubject} from 'rxjs';
 
 // import {Product} from './product';
 import {ProductService} from './product.service';
-import {catchError, map, startWith} from 'rxjs/operators';
-import {ProductCategoryService} from "../product-categories/product-category.service";
+import {catchError, filter, map, startWith} from 'rxjs/operators';
+import {ProductCategoryService} from '../product-categories/product-category.service';
 
 // OnPush allows more efficient change detection. Only checks when observables emit or input variables
 @Component({
@@ -63,13 +63,6 @@ export class ProductListComponent {
     })
   );
 
-  categories$ = this.productCategoryService.productCategories$.pipe(
-    catchError(err => {
-      this.errorMessageSubject.next(err);
-      return EMPTY;
-    })
-  );
-
   // Hard coded filtering
   // productSimpleFilter$ = this.productService.productsWithCategory$.pipe(
   //   map(products =>
@@ -77,6 +70,23 @@ export class ProductListComponent {
   //       this.selectedCategoryId ? product.categoryId === this.selectedCategoryId : true
   //     ))
   // );
+
+  categories$ = this.productCategoryService.productCategories$.pipe(
+    catchError(err => {
+      this.errorMessageSubject.next(err);
+      return EMPTY;
+    })
+  );
+
+  vm$ = combineLatest([
+    this.products$,
+    this.categories$,
+  ]).pipe(
+    filter(([product]) => Boolean(product)),
+    map(([products, categories]) =>
+      ({ products, categories })
+    ),
+  );
 
   constructor(private productService: ProductService,
               private productCategoryService: ProductCategoryService) { }

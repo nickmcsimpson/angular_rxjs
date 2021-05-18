@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
-import {Observable, throwError, combineLatest, BehaviorSubject, Subject, merge} from 'rxjs';
-import {catchError, tap, map, scan, shareReplay} from 'rxjs/operators';
+import {Observable, throwError, combineLatest, BehaviorSubject, Subject, merge, from} from 'rxjs';
+import {catchError, tap, map, scan, shareReplay, mergeMap, toArray, filter, switchMap} from 'rxjs/operators';
 
 import { Product } from './product';
 import { Supplier } from '../suppliers/supplier';
@@ -68,6 +68,29 @@ export class ProductService {
   )
     .pipe(
       scan((acc: Product[], value: Product) => [...acc, value])
+    );
+
+  // Get it all approach:
+  // selectedProductSuppliers$ = combineLatest([
+  //   this.selectedProduct$,
+  //   this.supplierService.suppliers$,
+  // ]).pipe(
+  //   map(([selectedProduct, suppliers]) =>
+  //     suppliers.filter(supplier => selectedProduct.supplierIds.includes(supplier.id))
+  //   )
+  // );
+
+  // Just in time approach
+  selectedProductSuppliers$ = this.selectedProduct$
+    .pipe(
+      filter(selectedProduct => Boolean(selectedProduct)), // Shorthand for verfiying it exists
+      switchMap(selectedProduct => // Using mergeMap here could result in incorrect values returning to the UI if they are not sequential
+        from(selectedProduct.supplierIds)
+          .pipe(
+            mergeMap(supplierId => this.http.get<Supplier>(`${this.suppliersUrl}/${supplierId}`)),
+            toArray(),
+            tap(suppliers => console.log('product suppliers', JSON.stringify(suppliers))),
+          ))
     );
 
 
@@ -147,4 +170,12 @@ export class ProductService {
    Invalidation:
     Evaluate the fluidity of the data, behavior of users
     Consider invalidating over an interval, allow user to refresh, always get fresh on update
+ */
+
+/* ---- Joining Related Data Stream Strategies
+  We can joing related data in different forms:
+  'Get it All': request all the data (cached or not) and combine the related data into an observable. (combineLatest) Suppliers
+
+  'Just in Time': Use higher order observable to combine the data
+
  */
