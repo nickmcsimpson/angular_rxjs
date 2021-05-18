@@ -15,16 +15,19 @@ export class ProductService {
   private productsUrl = 'api/products';
   private suppliersUrl = this.supplierService.suppliersUrl;
 
+  products$ = this.http.get<Product[]>(this.productsUrl)
+    .pipe(
+      tap(data => console.log('Products: ', JSON.stringify(data))),
+      catchError(this.handleError) // Catch and Rethrow error handling
+    );
+
   constructor(private http: HttpClient,
               private supplierService: SupplierService) { }
 
-  getProducts(): Observable<Product[]> {
-    return this.http.get<Product[]>(this.productsUrl)
-      .pipe(
-        tap(data => console.log('Products: ', JSON.stringify(data))),
-        catchError(this.handleError)
-      );
-  }
+  // Removed by referencing the observable directly
+  // getProducts(): Observable<Product[]> {
+  //   return
+  // }
 
   private fakeProduct(): Product {
     return {
