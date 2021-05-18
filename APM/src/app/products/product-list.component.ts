@@ -15,7 +15,9 @@ import {ProductCategoryService} from "../product-categories/product-category.ser
 })
 export class ProductListComponent {
   pageTitle = 'Product List';
-  errorMessage = '';
+  // errorMessage = ''; // Doesn't update when services return errors
+  private errorMessageSubject = new Subject<string>();
+  errorMessage$ = this.errorMessageSubject.asObservable();
   // categories;
   // selectedCategoryId = 1;
   /*
@@ -48,7 +50,7 @@ export class ProductListComponent {
 
   // Filter the list of product based on selection:
   products$ = combineLatest([
-    this.productService.productsWithCategory$,
+    this.productService.productsWithAdd$,
     this.categorySelectedAction$
   ]).pipe(
     map(([products, selectedCategoryId]) =>
@@ -56,14 +58,14 @@ export class ProductListComponent {
         selectedCategoryId ? product.categoryId === selectedCategoryId : true
       )),
     catchError(err => {
-      this.errorMessage = err;
+      this.errorMessageSubject.next(err);
       return EMPTY;
     })
   );
 
   categories$ = this.productCategoryService.productCategories$.pipe(
     catchError(err => {
-      this.errorMessage = err;
+      this.errorMessageSubject.next(err);
       return EMPTY;
     })
   );
@@ -96,7 +98,7 @@ export class ProductListComponent {
   // }
 
   onAdd(): void {
-    console.log('Not yet implemented');
+    this.productService.addProduct();
   }
 
   onSelected(categoryId: string): void {
